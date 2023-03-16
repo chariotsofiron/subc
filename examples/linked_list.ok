@@ -1,0 +1,55 @@
+struct Node {
+    value: u32;
+    next: &Node;
+};
+
+fn construct(value: u32, next: &Node): &Node {
+    node: &Node = malloc(sizeof(Node));
+    node.value = value;
+    node.next = next;
+    return node;
+}
+
+fn length(head: &Node): u32 {
+    current: &Node = head;
+    length: u32 = 0;
+    while current != 0 {
+        length += 1;
+        current = current.next;
+    }
+    return length;
+}
+
+fn index(head: &Node, target: u32): u32 {
+    current: &Node = head;
+    i: u32 = 0;
+    while current != 0 {
+        if current.value == target {
+            return i;   
+        }
+        current = current.next; 
+        i += 1;
+    }
+    return -1; 
+} 
+
+fn print_list(head: &Node) {
+    current: &Node = head;
+    while current.next != 0 {
+        printf("%d -> ", current.value);
+        current = current.next;
+    } 
+    printf("%d\n", current.value);
+}
+
+fn main() {
+    head: &Node = 0;
+    head = construct(3, head);
+    head = construct(5, head);
+    head = construct(4, head);
+    head = construct(2, head);
+
+    printf("Length: %d\n", length(head));
+    print_list(head);
+    printf("idx %d: %d\n", 5, index(head, 5));
+}

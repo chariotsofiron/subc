@@ -2,16 +2,40 @@ use crate::token::{Token, Type};
 
 /// A tokenizer for the C language.
 pub struct Tokenizer<'a> {
+    next_token: Option<Token>,
     pos: usize,
     text: &'a str,
 }
 
 impl<'a> Tokenizer<'a> {
     pub const fn new(text: &'a str) -> Self {
-        Tokenizer { pos: 0, text }
+        let tokenizer = Self {
+            next_token: None,
+            pos: 0,
+            text,
+        };
+        tokenizer
     }
 
-    fn get_token(&mut self) -> Token {
+    fn advance(&mut self) {
+        if self.consume_whitespace() {
+            self.next_token = self.get_token();
+            if let Some(token) = &self.next_token {
+                self.pos += token.lexeme.len();
+            }
+        }
+    }
+
+    pub fn peek_type(&self) -> Option<Type> {
+        self.next_token.as_ref().map(|token| token.type_)
+    }
+
+    pub fn peek(&self) -> Option<&Token> {
+        self.next_token.as_ref()
+    }
+
+    /// Parses the next token from the text stream.
+    fn get_token(&self) -> Option<Token> {
         let tokens = [
             // symbols
             (";", Type::Semicolon),
@@ -62,17 +86,17 @@ impl<'a> Tokenizer<'a> {
         // fixed-length token
         for (lexeme, token_type) in tokens {
             if self.text[self.pos..].starts_with(lexeme) {
-                return Token {
+                return Some(Token {
                     type_: token_type,
                     lexeme: lexeme.to_owned(),
                     index: self.pos,
-                };
+                });
             }
         }
 
         // variable-length token
         let mut chars = self.text[self.pos..].chars();
-        let (token_type, end) = match chars.next().expect("Unexpected end of file") {
+        let (token_type, end) = match chars.next()? {
             ch if ch.is_ascii_digit() => {
                 (Type::Number, chars.take_while(char::is_ascii_digit).count())
             }
@@ -82,11 +106,11 @@ impl<'a> Tokenizer<'a> {
             ),
             ch => panic!("Unexpected character: '{ch}'"),
         };
-        Token {
+        Some(Token {
             type_: token_type,
             lexeme: self.text[self.pos..=(self.pos + end)].to_owned(),
             index: self.pos,
-        }
+        })
     }
 
     /// Consumes whitespace and comments and returns whether there is more text to process.
@@ -124,16 +148,16 @@ impl<'a> Tokenizer<'a> {
     }
 }
 
-impl<'a> Iterator for Tokenizer<'a> {
-    type Item = Token;
+// impl<'a> Iterator for Tokenizer<'a> {
+//     type Item = Token;
 
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.consume_whitespace() {
-            let token = self.get_token();
-            self.pos += token.lexeme.len();
-            Some(token)
-        } else {
-            None
-        }
-    }
-}
+//     fn next(&mut self) -> Option<Self::Item> {
+//         if self.consume_whitespace() {
+//             let token = self.get_token();
+//             self.pos += token.lexeme.len();
+//             Some(token)
+//         } else {
+//             None
+//         }
+//     }
+// }

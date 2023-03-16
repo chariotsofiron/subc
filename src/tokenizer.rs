@@ -1,4 +1,4 @@
-use crate::token::{Token, TokenType};
+use crate::token::{Token, Type};
 
 /// A tokenizer for the C language.
 pub struct Tokenizer<'a> {
@@ -7,63 +7,63 @@ pub struct Tokenizer<'a> {
 }
 
 impl<'a> Tokenizer<'a> {
-    pub fn new(text: &'a str) -> Self {
+    pub const fn new(text: &'a str) -> Self {
         Tokenizer { pos: 0, text }
     }
 
     fn get_token(&mut self) -> Token {
         let tokens = [
             // symbols
-            (";", TokenType::Semicolon),
-            ("(", TokenType::LParen),
-            (")", TokenType::RParen),
-            ("{", TokenType::LBrace),
-            ("}", TokenType::RBrace),
-            ("?", TokenType::Question),
-            ("||", TokenType::LogOr),
-            ("&&", TokenType::LogAnd),
-            ("|", TokenType::BitOr),
-            ("^", TokenType::BitXor),
-            ("&", TokenType::BitAnd),
-            ("==", TokenType::Equal),
-            ("!=", TokenType::NotEqual),
-            ("<", TokenType::Less),
-            ("<=", TokenType::LessEqual),
-            (">", TokenType::Greater),
-            (">=", TokenType::GreaterEqual),
-            ("<<", TokenType::ShiftLeft),
-            (">>", TokenType::ShiftRight),
-            ("+", TokenType::Plus),
-            ("-", TokenType::Minus),
-            ("*", TokenType::Star),
-            ("/", TokenType::Slash),
-            ("%", TokenType::Percent),
-            ("++", TokenType::Increment),
-            ("--", TokenType::Decrement),
-            (".", TokenType::Point),
-            ("->", TokenType::Arrow),
-            ("[", TokenType::LSquare),
-            ("]", TokenType::RSquare),
-            (",", TokenType::Comma),
-            ("=", TokenType::Assign),
+            (";", Type::Semicolon),
+            ("(", Type::LParen),
+            (")", Type::RParen),
+            ("{", Type::LBrace),
+            ("}", Type::RBrace),
+            ("?", Type::Question),
+            ("||", Type::LogOr),
+            ("&&", Type::LogAnd),
+            ("|", Type::BitOr),
+            ("^", Type::BitXor),
+            ("&", Type::BitAnd),
+            ("==", Type::Equal),
+            ("!=", Type::NotEqual),
+            ("<", Type::Less),
+            ("<=", Type::LessEqual),
+            (">", Type::Greater),
+            (">=", Type::GreaterEqual),
+            ("<<", Type::ShiftLeft),
+            (">>", Type::ShiftRight),
+            ("+", Type::Plus),
+            ("-", Type::Minus),
+            ("*", Type::Star),
+            ("/", Type::Slash),
+            ("%", Type::Percent),
+            ("++", Type::Increment),
+            ("--", Type::Decrement),
+            (".", Type::Point),
+            ("->", Type::Arrow),
+            ("[", Type::LSquare),
+            ("]", Type::RSquare),
+            (",", Type::Comma),
+            ("=", Type::Assign),
             // keywords
-            ("if", TokenType::If),
-            ("else", TokenType::Else),
-            ("for", TokenType::For),
-            ("while", TokenType::While),
-            ("return", TokenType::Return),
-            ("int", TokenType::Int),
-            ("char", TokenType::Char),
-            ("void", TokenType::Void),
-            ("struct", TokenType::Struct),
-            ("enum", TokenType::Enum),
+            ("if", Type::If),
+            ("else", Type::Else),
+            ("for", Type::For),
+            ("while", Type::While),
+            ("return", Type::Return),
+            ("int", Type::Int),
+            ("char", Type::Char),
+            ("void", Type::Void),
+            ("struct", Type::Struct),
+            ("enum", Type::Enum),
         ];
 
         // fixed-length token
         for (lexeme, token_type) in tokens {
             if self.text[self.pos..].starts_with(lexeme) {
                 return Token {
-                    token_type,
+                    type_: token_type,
                     lexeme: lexeme.to_owned(),
                     index: self.pos,
                 };
@@ -73,19 +73,18 @@ impl<'a> Tokenizer<'a> {
         // variable-length token
         let mut chars = self.text[self.pos..].chars();
         let (token_type, end) = match chars.next().expect("Unexpected end of file") {
-            ch if ch.is_ascii_digit() => (
-                TokenType::Number,
-                chars.take_while(char::is_ascii_digit).count(),
-            ),
+            ch if ch.is_ascii_digit() => {
+                (Type::Number, chars.take_while(char::is_ascii_digit).count())
+            }
             ch if ch.is_ascii_alphabetic() => (
-                TokenType::Identifier,
+                Type::Identifier,
                 chars.take_while(char::is_ascii_alphanumeric).count(),
             ),
             ch => panic!("Unexpected character: '{ch}'"),
         };
         Token {
-            token_type,
-            lexeme: self.text[self.pos..self.pos + end + 1].to_owned(),
+            type_: token_type,
+            lexeme: self.text[self.pos..=(self.pos + end)].to_owned(),
             index: self.pos,
         }
     }
@@ -98,8 +97,7 @@ impl<'a> Tokenizer<'a> {
             } else if self.text[self.pos..].starts_with("//") {
                 // line comment
                 self.pos += 2;
-                let mut chars = self.text[self.pos..].chars();
-                while let Some(ch) = chars.next() {
+                for ch in self.text[self.pos..].chars() {
                     self.pos += ch.len_utf8();
                     if ch == '\n' {
                         break;
@@ -116,7 +114,7 @@ impl<'a> Tokenizer<'a> {
             } else if self.text[self.pos..] // whitespace
                 .chars()
                 .next()
-                .map_or(false, |c| c.is_whitespace())
+                .map_or(false, char::is_whitespace)
             {
                 self.pos += 1;
             } else {

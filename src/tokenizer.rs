@@ -1,163 +1,140 @@
-use crate::token::{Token, Type};
+use crate::token::{Token, TokenType};
 
 /// A tokenizer for the C language.
 pub struct Tokenizer<'a> {
-    next_token: Option<Token>,
     pos: usize,
     text: &'a str,
 }
 
 impl<'a> Tokenizer<'a> {
     pub const fn new(text: &'a str) -> Self {
-        let tokenizer = Self {
-            next_token: None,
-            pos: 0,
-            text,
-        };
-        tokenizer
-    }
-
-    fn advance(&mut self) {
-        if self.consume_whitespace() {
-            self.next_token = self.get_token();
-            if let Some(token) = &self.next_token {
-                self.pos += token.lexeme.len();
-            }
-        }
-    }
-
-    pub fn peek_type(&self) -> Option<Type> {
-        self.next_token.as_ref().map(|token| token.type_)
-    }
-
-    pub fn peek(&self) -> Option<&Token> {
-        self.next_token.as_ref()
+        Self { pos: 0, text }
     }
 
     /// Parses the next token from the text stream.
-    fn get_token(&self) -> Option<Token> {
+    fn next_token(&self) -> Option<Token> {
         let tokens = [
             // symbols
-            (";", Type::Semicolon),
-            ("(", Type::LParen),
-            (")", Type::RParen),
-            ("{", Type::LBrace),
-            ("}", Type::RBrace),
-            ("?", Type::Question),
-            ("||", Type::LogOr),
-            ("&&", Type::LogAnd),
-            ("|", Type::BitOr),
-            ("^", Type::BitXor),
-            ("&", Type::BitAnd),
-            ("==", Type::Equal),
-            ("!=", Type::NotEqual),
-            ("<", Type::Less),
-            ("<=", Type::LessEqual),
-            (">", Type::Greater),
-            (">=", Type::GreaterEqual),
-            ("<<", Type::ShiftLeft),
-            (">>", Type::ShiftRight),
-            ("+", Type::Plus),
-            ("-", Type::Minus),
-            ("*", Type::Star),
-            ("/", Type::Slash),
-            ("%", Type::Percent),
-            ("++", Type::Increment),
-            ("--", Type::Decrement),
-            (".", Type::Point),
-            ("->", Type::Arrow),
-            ("[", Type::LSquare),
-            ("]", Type::RSquare),
-            (",", Type::Comma),
-            ("=", Type::Assign),
+            (";", TokenType::Semicolon),
+            (":", TokenType::Colon),
+            ("(", TokenType::LParen),
+            (")", TokenType::RParen),
+            ("{", TokenType::LBrace),
+            ("}", TokenType::RBrace),
+            ("?", TokenType::Question),
+            ("||", TokenType::LogOr),
+            ("&&", TokenType::LogAnd),
+            ("|", TokenType::BitOr),
+            ("^", TokenType::BitXor),
+            ("&", TokenType::BitAnd),
+            ("==", TokenType::Equal),
+            ("!=", TokenType::NotEqual),
+            ("<", TokenType::Less),
+            ("<=", TokenType::LessEqual),
+            (">", TokenType::Greater),
+            (">=", TokenType::GreaterEqual),
+            ("<<", TokenType::ShiftLeft),
+            (">>", TokenType::ShiftRight),
+            ("+", TokenType::Plus),
+            ("-", TokenType::Minus),
+            ("*", TokenType::Star),
+            ("/", TokenType::Slash),
+            ("%", TokenType::Percent),
+            ("++", TokenType::Increment),
+            ("--", TokenType::Decrement),
+            (".", TokenType::Point),
+            ("[", TokenType::LSquare),
+            ("]", TokenType::RSquare),
+            (",", TokenType::Comma),
+            ("=", TokenType::Assign),
             // keywords
-            ("if", Type::If),
-            ("else", Type::Else),
-            ("for", Type::For),
-            ("while", Type::While),
-            ("return", Type::Return),
-            ("int", Type::Int),
-            ("char", Type::Char),
-            ("void", Type::Void),
-            ("struct", Type::Struct),
-            ("enum", Type::Enum),
+            ("if", TokenType::If),
+            ("else", TokenType::Else),
+            ("for", TokenType::For),
+            ("while", TokenType::While),
+            ("return", TokenType::Return),
+            ("int", TokenType::Int),
+            ("char", TokenType::Char),
+            ("void", TokenType::Void),
+            ("struct", TokenType::Struct),
+            ("enum", TokenType::Enum),
         ];
 
         // fixed-length token
         for (lexeme, token_type) in tokens {
             if self.text[self.pos..].starts_with(lexeme) {
                 return Some(Token {
-                    type_: token_type,
-                    lexeme: lexeme.to_owned(),
-                    index: self.pos,
+                    token_type,
+                    lexeme: lexeme.to_string(),
+                    pos: self.pos,
                 });
             }
         }
 
         // variable-length token
-        let mut chars = self.text[self.pos..].chars();
-        let (token_type, end) = match chars.next()? {
-            ch if ch.is_ascii_digit() => {
-                (Type::Number, chars.take_while(char::is_ascii_digit).count())
-            }
-            ch if ch.is_ascii_alphabetic() => (
-                Type::Identifier,
-                chars.take_while(char::is_ascii_alphanumeric).count(),
-            ),
+        let mut chars = self.text[self.pos..].chars().peekable();
+        match chars.peek()? {
+            ch if ch.is_ascii_digit() => Some(Token {
+                token_type: TokenType::Number,
+                lexeme: chars.take_while(char::is_ascii_digit).collect(),
+                pos: self.pos,
+            }),
+            ch if ch.is_ascii_alphabetic() => Some(Token {
+                token_type: TokenType::Identifier,
+                lexeme: chars.take_while(char::is_ascii_alphanumeric).collect(),
+                pos: self.pos,
+            }),
             ch => panic!("Unexpected character: '{ch}'"),
-        };
-        Some(Token {
-            type_: token_type,
-            lexeme: self.text[self.pos..=(self.pos + end)].to_owned(),
-            index: self.pos,
-        })
+        }
     }
 
-    /// Consumes whitespace and comments and returns whether there is more text to process.
-    fn consume_whitespace(&mut self) -> bool {
+    /// Consumes whitespace and comments
+    fn consume_whitespace(&mut self) {
+        let mut chars = self.text[self.pos..].chars();
         loop {
-            if self.pos >= self.text.len() {
-                return false;
-            } else if self.text[self.pos..].starts_with("//") {
-                // line comment
-                self.pos += 2;
-                for ch in self.text[self.pos..].chars() {
-                    self.pos += ch.len_utf8();
-                    if ch == '\n' {
+            match chars.next() {
+                Some(ch) if ch.is_whitespace() => self.pos += ch.len_utf8(),
+                Some('/') => match chars.next() {
+                    Some('/') => {
+                        self.pos += 2;
+                        chars
+                            .by_ref()
+                            .take_while(|ch| *ch != '\n')
+                            .for_each(|c| self.pos += c.len_utf8());
+                    }
+                    Some('*') => {
+                        self.pos += 2;
+                        while let Some(ch) = chars.next() {
+                            if ch == '*' && chars.next() == Some('/') {
+                                self.pos += 2;
+                                break;
+                            }
+                            self.pos += ch.len_utf8();
+                        }
+                    }
+                    Some(c) => {
+                        self.pos += 1 + c.len_utf8();
+                    }
+                    None => {
+                        self.pos += 1;
                         break;
                     }
-                }
-            } else if self.text[self.pos..].starts_with("/*") {
-                // block comment
-                self.pos += 2;
-                let mut chars = self.text[self.pos..].chars();
-                while !self.text[self.pos..].starts_with("*/") {
-                    self.pos += chars.next().unwrap().len_utf8();
-                }
-                self.pos += 2;
-            } else if self.text[self.pos..] // whitespace
-                .chars()
-                .next()
-                .map_or(false, char::is_whitespace)
-            {
-                self.pos += 1;
-            } else {
-                return true;
+                },
+                _ => break,
             }
         }
     }
 }
 
-// impl<'a> Iterator for Tokenizer<'a> {
-//     type Item = Token;
+impl<'a> Iterator for Tokenizer<'a> {
+    type Item = Token;
 
-//     fn next(&mut self) -> Option<Self::Item> {
-//         if self.consume_whitespace() {
-//             let token = self.get_token();
-//             self.pos += token.lexeme.len();
-//             Some(token)
-//         } else {
-//             None
-//         }
-//     }
-// }
+    fn next(&mut self) -> Option<Self::Item> {
+        self.consume_whitespace();
+        let tok = self.next_token();
+        if let Some(ref tok) = tok {
+            self.pos += tok.lexeme.len();
+        }
+        tok
+    }
+}

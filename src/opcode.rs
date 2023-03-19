@@ -30,7 +30,7 @@ fn execute(program: &[Opcode]) {
         match opcode {
             Opcode::Add => {
                 ax += memory[stack_pointer];
-                stack_pointer += CType::Int.size();
+                stack_pointer += 4;
             }
             Opcode::Bnz(address) => {
                 if ax != 0 {

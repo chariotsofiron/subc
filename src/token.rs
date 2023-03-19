@@ -1,11 +1,12 @@
 #[derive(Debug, PartialEq, Clone, Copy, Eq)]
-pub enum Type {
+pub enum TokenType {
     // literals
     Identifier,
     Number,
 
     // symbols
     Semicolon,    // ;
+    Colon,        // :
     LParen,       // (
     RParen,       // )
     LBrace,       // {
@@ -53,7 +54,7 @@ pub enum Type {
     Enum,   // enum
 }
 
-impl Type {
+impl TokenType {
     pub const fn precedence(self) -> usize {
         match self {
             Self::Assign => 1,
@@ -64,18 +65,11 @@ impl Type {
             Self::BitXor => 6,
             Self::BitAnd => 7,
             Self::Equal | Self::NotEqual => 8,
-            Self::Less
-            | Self::LessEqual
-            | Self::Greater
-            | Self::GreaterEqual => 9,
+            Self::Less | Self::LessEqual | Self::Greater | Self::GreaterEqual => 9,
             Self::ShiftLeft | Self::ShiftRight => 10,
             Self::Plus | Self::Minus => 11,
             Self::Star | Self::Slash | Self::Percent => 12,
-            Self::Increment
-            | Self::Decrement
-            | Self::Point
-            | Self::Arrow
-            | Self::LSquare => 13,
+            Self::Increment | Self::Decrement | Self::Point | Self::Arrow | Self::LSquare => 13,
             _ => 0,
         }
     }
@@ -83,18 +77,14 @@ impl Type {
     pub const fn is_type(self) -> bool {
         matches!(
             self,
-            Self::Int
-                | Self::Char
-                | Self::Void
-                | Self::Struct
-                | Self::Enum
+            Self::Int | Self::Char | Self::Void | Self::Struct | Self::Enum
         )
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, PartialEq, Clone, Eq)]
 pub struct Token {
-    pub type_: Type,
+    pub token_type: TokenType,
     pub lexeme: String,
-    pub index: usize,
+    pub pos: usize,
 }

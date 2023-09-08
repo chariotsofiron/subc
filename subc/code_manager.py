@@ -1,10 +1,4 @@
-"""the program module"""
-
-
 class Program:
-    """Represents an assembly program capable of being executed by the
-    virtual machine"""
-
     def __init__(self):
         self.instructions = []
         self.label_ctr = 0

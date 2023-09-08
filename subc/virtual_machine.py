@@ -1,5 +1,8 @@
-from subc.scope_manager import Sizes
 import enum
+
+from subc.scope_manager import Sizes
+
+
 class Opcode(enum.Enum):
     ADD = enum.auto()
     SUB = enum.auto()
@@ -30,15 +33,8 @@ class Opcode(enum.Enum):
     ADJ = enum.auto()
 
 
-
-def execute(pc_start: int, program: list, data_segment):
-    """
-    stack
-    heap
-    data
-    -----
-    text
-    """
+def execute(pc_start: int, program: list, data_segment) -> int:
+    """Runs the program and returns the exit code."""
     program.extend(("PSH", "EXIT"))  # EXIT for main return
     memory = [0] * 2048
     memory[: len(data_segment)] = data_segment
@@ -185,7 +181,7 @@ def execute(pc_start: int, program: list, data_segment):
 
         elif opcode == "EXIT":
             print(f"exit({memory[sp]})")
-            return
+            return memory[sp]
 
         else:
             print("unrecognized opcode")

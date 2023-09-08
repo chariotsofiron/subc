@@ -1,6 +1,3 @@
-"""
-run the compiler on a particular test case
-"""
 import sys
 
 from subc.compiler import Compiler
@@ -9,7 +6,6 @@ from subc.virtual_machine import execute
 
 
 def main():
-    """main method"""
     file_name = sys.argv[1]
     src = open(file_name).read()
     tokens = tokenize(src)

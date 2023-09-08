@@ -1,6 +1,6 @@
+import collections
 import enum
 from typing import Optional
-import collections
 
 
 class Sizes(enum.IntEnum):
@@ -140,7 +140,7 @@ class SymbolTable:
         return self.sizes[var_type]
 
     def get_add_size(self, var_type: Types) -> int:
-        '''Gets the size of the variable to add to the address.'''
+        """Gets the size of the variable to add to the address."""
         if var_type >= Types.Ptr:
             return self.sizeof(var_type - Types.Ptr)
         return 1
